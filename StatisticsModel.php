@@ -11,7 +11,7 @@ class Statistics extends Model
 	
 	protected $table = 'statistics';
 	
-    public function getStat($user_id, $user_stream, $limit = 100)
+    	public function getStat($user_id, $user_stream, $limit = 100)
 	{
 		return DB::table($this->table)
 		->where('user_id', $user_id)
@@ -76,16 +76,16 @@ class Statistics extends Model
 	public function setStat()
 	{
 		return DB::table($this->table)->insert([
-			'user_id' 		=> $this->udata['user_id'], 
+			'user_id' 	=> $this->udata['user_id'], 
 			'user_stream' 	=> $this->udata['user_stream'],
-			'ip' 			=> $this->udata['ip'],
+			'ip' 		=> $this->udata['ip'],
 			'date_time' 	=> $this->udata['date_time'],
-			'geo' 			=> $this->udata['geo'],
-			'isp' 			=> $this->udata['isp'],
+			'geo' 		=> $this->udata['geo'],
+			'isp' 		=> $this->udata['isp'],
 			'user_agent' 	=> $this->udata['user_agent'],
 			'is_mobile' 	=> $this->udata['is_mobile'],
-			'referer' 		=> $this->udata['referer'],
-			'filter' 		=> $this->udata['filter'],
+			'referer' 	=> $this->udata['referer'],
+			'filter' 	=> $this->udata['filter'],
 			'redirect_page' => $this->udata['redirect_page']
 		]);
 	}
