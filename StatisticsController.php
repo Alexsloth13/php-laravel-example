@@ -27,15 +27,12 @@ class StatisticsController extends Controller
       }
 
       if (empty($date))
-		$date = Carbon::today()->toDateString();
+	$date = Carbon::today()->toDateString();
 
-		$datas = $this->statistics->getStatByDate($user_id, $stream_id, $date, 40);
-
-		$total_clicks = $this->statistics->clicksByDate($user_id, $stream_id, $date);
-
-		$clicks_bloced = $this->statistics->clicksBlocedByDate($user_id, $stream_id, $date);
-
-		$clicks_allow =  $total_clicks - $clicks_bloced;
+	$datas = $this->statistics->getStatByDate($user_id, $stream_id, $date, 40);
+	$total_clicks = $this->statistics->clicksByDate($user_id, $stream_id, $date);
+	$clicks_bloced = $this->statistics->clicksBlocedByDate($user_id, $stream_id, $date);
+	$clicks_allow =  $total_clicks - $clicks_bloced;
 
       return view('statistics', [
         'datas' =>  $datas, 
