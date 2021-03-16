@@ -7,115 +7,115 @@ use Illuminate\Support\Facades\DB;
 
 class StreamsModel extends Model
 {
-    protected $table = 'streams';
+	protected $table = 'streams';
 
-    public function insert_stream( array $data )
+	public function insert_stream( array $data )
 	{
-		return DB::table($this->table)->insert([
-			'user_id' 		=> $data['user_id'],
-            'title' 	    => $data['title'],
-            'safe_page' 	=> $data['safe_page'],
-			'offer_page' 	=> $data['offer_page'],
-			'geo' 	        => $data['geo'],
-            'on_off' 		=> $data['on_off'],
-            'ipv6' 		    => $data['ipv6'],
-            'device' 		=> $data['device']
+	return DB::table($this->table)->insert([
+		'user_id' 		=> $data['user_id'],
+		'title' 	    => $data['title'],
+		'safe_page' 	=> $data['safe_page'],
+		'offer_page' 	=> $data['offer_page'],
+		'geo' 	        => $data['geo'],
+		'on_off' 		=> $data['on_off'],
+		'ipv6' 		    => $data['ipv6'],
+		'device' 		=> $data['device']
 
 		]);
-    }
+	}
 
-    public function update_stream( array $data )
+	public function update_stream( array $data )
 	{
-        return DB::table($this->table)
-        ->where('stream_id', $data['stream_id'])
-        ->where('user_id', $data['user_id'])
-        ->update([
-            'title' 	    => $data['title'],
-            'safe_page' 	=> $data['safe_page'],
-			'offer_page' 	=> $data['offer_page'],
-			'geo' 	        => $data['geo'],
-            'on_off' 		=> $data['on_off'],
-            'ipv6' 		    => $data['ipv6'],
-            'device' 		=> $data['device']
-        ]);
-    }
+		return DB::table($this->table)
+		->where('stream_id', $data['stream_id'])
+		->where('user_id', $data['user_id'])
+		->update([
+		    'title' 	    => $data['title'],
+		    'safe_page' 	=> $data['safe_page'],
+				'offer_page' 	=> $data['offer_page'],
+				'geo' 	        => $data['geo'],
+		    'on_off' 		=> $data['on_off'],
+		    'ipv6' 		    => $data['ipv6'],
+		    'device' 		=> $data['device']
+		]);
+	}
 
-    public function select_streams( int $user_id )
+	public function select_streams( int $user_id )
 	{
-        return DB::table($this->table)
-        ->where('user_id', $user_id)
-        ->orderByDesc('stream_id')
-        ->get();
-    }
+		return DB::table($this->table)
+		->where('user_id', $user_id)
+		->orderByDesc('stream_id')
+		->get();
+	}
 
-    public function streams_count( int $user_id )
+	public function streams_count( int $user_id )
 	{
-        return DB::table($this->table)
-        ->select('stream_id')
-        ->where('user_id', $user_id)
-        ->count();
-    }
-	
+		return DB::table($this->table)
+		->select('stream_id')
+		->where('user_id', $user_id)
+		->count();
+	}
+
 	public function select_stream_by_id( int $stream_id, int $user_id )
 	{
-        return DB::table($this->table)
-        ->where('user_id', $user_id)
-        ->where('stream_id', $stream_id)
-        ->get();
-    }
+		return DB::table($this->table)
+		->where('user_id', $user_id)
+		->where('stream_id', $stream_id)
+		->get();
+	}
 
-    // Получаем массив с id потоками пользователя по его user_id
-    public function selectStreamIdsByUserId( int $user_id, $numToStr = false)
+	// Получаем массив с id потоками пользователя по его user_id
+	public function selectStreamIdsByUserId( int $user_id, $numToStr = false)
 	{
-        $results = DB::table($this->table)
-        ->select('stream_id')
-        ->where('user_id', $user_id)
-        ->orderBy('stream_id', 'desc')
-        ->get();
+		$results = DB::table($this->table)
+		->select('stream_id')
+		->where('user_id', $user_id)
+		->orderBy('stream_id', 'desc')
+		->get();
 
-        $array = array();
-        if($numToStr){
-            foreach ($results as $result) {
-                $array[] = strval($result->stream_id);
-            }
-        }else{
-            foreach ($results as $result) {
-                $array[] = $result->stream_id;
-            }
-        }
-        return $array; 
-    }
+		$array = array();
+		if($numToStr){
+		    foreach ($results as $result) {
+			$array[] = strval($result->stream_id);
+		    }
+		}else{
+		    foreach ($results as $result) {
+			$array[] = $result->stream_id;
+		    }
+		}
+		return $array; 
+		}
 
-    public function delete_stream( int $stream_id, int $user_id )
+		public function delete_stream( int $stream_id, int $user_id )
+		{
+		return DB::table($this->table)
+		->where('stream_id', $stream_id)
+		->where('user_id', $user_id)
+		->delete();
+	}
+
+	public function create_device_options( $device )
 	{
-        return DB::table($this->table)
-        ->where('stream_id', $stream_id)
-        ->where('user_id', $user_id)
-        ->delete();
-    }
-	
-    public function create_device_options( $device )
-	{
-        $device_options = explode( ',', $device );
+		$device_options = explode( ',', $device );
 
-        $code = '<option value="{{devices}}"{{selected}}>{{name}}</option>';
-        $devices = array('desktop','mobile','tablet');
-        $names = array('Desktop','Mobile','Tablet');
+		$code = '<option value="{{devices}}"{{selected}}>{{name}}</option>';
+		$devices = array('desktop','mobile','tablet');
+		$names = array('Desktop','Mobile','Tablet');
 
-        for ($i = 0, $options = '', $count = count($devices); $i < $count; $i++) {
-            if(in_array($devices[$i], $device_options))
-                $selected[$i] = ' selected="selected"';
-            else
-                $selected[$i] = '';
-            $code = '<option value="{{geo}}"{{selected}}>{{name}}</option>';
-            $order	= array("{{geo}}", "{{name}}","{{selected}}");
-            $replace	= array($devices[$i] , $names[$i], $selected[$i]);
-            $getcode = str_ireplace($order, $replace, $code);
-            $options .= $getcode;
-        }
+		for ($i = 0, $options = '', $count = count($devices); $i < $count; $i++) {
+		    if(in_array($devices[$i], $device_options))
+			$selected[$i] = ' selected="selected"';
+		    else
+			$selected[$i] = '';
+		    $code = '<option value="{{geo}}"{{selected}}>{{name}}</option>';
+		    $order	= array("{{geo}}", "{{name}}","{{selected}}");
+		    $replace	= array($devices[$i] , $names[$i], $selected[$i]);
+		    $getcode = str_ireplace($order, $replace, $code);
+		    $options .= $getcode;
+		}
 
-        return $options;
-    }
+		return $options;
+	}
 
 	public function create_geo_options( $geo )
 	{	
