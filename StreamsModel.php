@@ -84,10 +84,10 @@ class StreamsModel extends Model
 		    }
 		}
 		return $array; 
-		}
+	}
 
-		public function delete_stream( int $stream_id, int $user_id )
-		{
+	public function delete_stream( int $stream_id, int $user_id )
+	{
 		return DB::table($this->table)
 		->where('stream_id', $stream_id)
 		->where('user_id', $user_id)
