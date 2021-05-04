@@ -11,143 +11,111 @@ use App\Http\Controllers\Route;
 
 class StreamsController extends Controller
 {
-    public function __construct(StreamsModel $streams)
+    public function __construct()
     {
         $this->middleware('auth');
-		$this->streams = $streams;
     }
 
-    public function index(Request $request, Statistics $stat)
+    public function index(Request $request, Statistics $stat, StreamsModel $streams)
     {
 		$user_id = Auth::id();
 		
 		// Удалить поток
-		if($request->get('stream_id') && $request->get('action') === 'trash'){
-			if(SubModel::is_active($user_id)){
-				$stream_id	= $request->get('stream_id');
-				$stat->clearStatsByStreamId($user_id, $stream_id);
-				$this->streams->delete_stream( $stream_id, $user_id );
-			}else{
+		if ($request->get('stream_id') && $request->get('action') === 'trash') {
+			if (!SubModel::is_active($user_id)) {
 				return redirect('streams')->with('status', 'Подписка не активна');
 			}
+
+			$stream_id = $request->get('stream_id');
+			// Удаляем статистику потока
+			$stat->clearStatsByStreamId($user_id, $stream_id);
+			// Удаляем поток
+			$streams->delete_stream($stream_id, $user_id);	
 		}
 
-		// Вывести список потоков
-		$streams = $this->streams->select_streams( $user_id );
+		// Вывести список всех потоков
+		$all_streams = $streams->select_streams( $user_id );
+		// Возвращает массив 'stream_id' => count_clicks(145)
+		$clicks = $stat->clicksByStreamsIds($user_id, $all_streams);
 
-		// Возвращает массив 'stream_id'(1) = > count_clicks(145)
-		$clicks = $stat->clicksByStreamsIds($user_id, $streams);
-
-        return view('streams',['streams' => $streams, 'clicks' => $clicks]);
+        return view('streams', ['streams' => $all_streams, 'clicks' => $clicks]);
     }
 	
-	public function add(Request $request){
-		
+	public function add(Request $request, StreamsModel $streams)
+	{
 		$user_id = Auth::id();
 
-		if(SubModel::is_active($user_id))
-		{
-			// Добавляем проверку количества разрешенныых потоков
-			$streams_count =  $this->streams->streams_count($user_id);
-
-			$allowed_streams_count = SubModel::allowed_streams_count($user_id);
-
-			if($streams_count < $allowed_streams_count){
-
-				if($request->input('title') && 
-				$request->input('safe_page') && 
-				$request->input('offer_page'))
-				{
-					$data['user_id']	= $user_id;
-					$data['title']		= $request->input('title');
-					$data['safe_page']	= $request->input('safe_page');
-					$data['offer_page']	= $request->input('offer_page');
-					if(!empty($request->input('geo')))
-						$data['geo']	= implode(', ', $request->input('geo'));
-					else
-						$data['geo']	= "";
-					$data['on_off']		= (int)$request->input('on_off');
-					$data['ipv6']		= (int)$request->input('ipv6');
-
-					if(!empty($request->input('device')))
-						$data['device']	= implode(',', $request->input('device'));
-					else
-						$data['device']	= "";
-
-					$streams = $this->streams->insert_stream( $data );
-					return redirect('streams')->with('success', "Поток создан, установите код интеграции.");
-				}else{
-					$geo = $this->streams->create_geo_options('');
-					$device = $this->streams->create_device_options('');
-					return view('edit', ['geo' => $geo, 'device' => $device]);
-				}
-			}
-			else
-			{
-				return redirect('streams')->with('status', "Привышение лимита потоков: макс. $allowed_streams_count");
-			}
+		// Проверка подписки
+		if (!SubModel::is_active($user_id)) {
+			return redirect('streams')->with('status', 'Подписка не активна');	
 		}
-		else
-		{
-			return redirect('streams')->with('status', 'Подписка не активна');
+
+		// Добавляем проверку количества разрешенныых потоков
+		$streams_count = $streams->streams_count($user_id);
+		$allowed_streams_count = SubModel::allowed_streams_count($user_id);
+
+		// Если потоков >= количеству разрешенных потоков, блокируем добавление новых потоков
+		if ($streams_count >= $allowed_streams_count) {
+			return redirect('streams')->with('status', "Привышение лимита потоков: макс. $allowed_streams_count");
 		}
+		
+		// Проверяем основные данные
+		if (empty($request->input('title')) && empty($request->input('safe_page')) && empty($request->input('offer_page'))) {
+			$geo = $streams->create_geo_options('');
+			$device = $streams->create_device_options('');
+			return view('edit', ['geo' => $geo, 'device' => $device]);	
+		}
+
+		// Инициализируем данные
+		$data['user_id'] = $user_id;
+		$data['title'] = $request->input('title');
+		$data['safe_page'] = $request->input('safe_page');
+		$data['offer_page'] = $request->input('offer_page');
+		$data['on_off'] = (int)$request->input('on_off');
+		$data['ipv6'] = (int)$request->input('ipv6');
+		$data['geo'] = empty($request->input('geo')) ? '' : implode(', ', $request->input('geo'));
+		$data['device'] = empty($request->input('device')) ? '' : implode(',', $request->input('device'));
+		// Добавляем поток
+		$streams->insert_stream( $data );
+
+		return redirect('streams')->with('success', "Поток создан, установите код интеграции.");
 	}
 	
-	public function edit(Request $request){
-		
+	public function edit(Request $request, StreamsModel $streams)
+	{
 		$user_id = Auth::id();
-		
-		if(SubModel::is_active($user_id))
-		{
-			
-			if($request->input('stream_id') && $request->input('action') === 'updata')
-			{
-				// Обновляем данные
-				$data['stream_id'] 	= $request->input('stream_id');
-				$data['user_id']	= $user_id;
-				$data['title']		= $request->input('title');
-				$data['safe_page']	= $request->input('safe_page');
-				$data['offer_page']	= $request->input('offer_page');
-				if(!empty($request->input('geo')))
-					$data['geo']	= implode(', ', $request->input('geo'));
-				else
-					$data['geo']	= "";
-				$data['on_off']		= (int)$request->input('on_off');
-				$data['ipv6']		= (int)$request->input('ipv6');
 
-				if(!empty($request->input('device')))
-					$data['device']	= implode(',', $request->input('device'));
-				else
-					$data['device']	= "";
-					
-				$streams = $this->streams->update_stream($data);
-				
-				return redirect('streams')->with('success', "Поток обновлен");
-			}
-			elseif($request->get('stream_id'))
-			{
-				// Передаем данные для редактирования
-				$stream_id	= $request->get('stream_id');
-				
-				$streams = $this->streams->select_stream_by_id( $stream_id, $user_id);
-				
-				$geo = $this->streams->create_geo_options( $streams[0]->geo );
-
-				$device = $this->streams->create_device_options( $streams[0]->device );
-
-				return view('edit',[
-					'streams' => $streams,
-					'geo' => $geo,
-					'device' => $device
-				]);
-
-			}else{
-				return redirect('streams');
-			}
-		}
-		else
-		{
+		// Проверка подписки
+		if (!SubModel::is_active($user_id)) {
 			return redirect('streams')->with('status', 'Подписка не активна');
 		}
-	}
+		
+		// Вернем пусную страничку, если не задан stream_id
+		if (empty($request->get('stream_id'))) {
+			return redirect('streams');
+		}
+
+		// Передаем данные для редактирования
+		if ($request->input('stream_id') && $request->input('action') !== 'updata') {
+			$stream_id	= $request->get('stream_id');	
+			$stream = $streams->select_stream_by_id($stream_id, $user_id);
+			$geo = $streams->create_geo_options($stream[0]->geo);
+			$device = $streams->create_device_options($stream[0]->device);
+			return view('edit',['streams' => $stream, 'geo' => $geo, 'device' => $device]);
+		} else {
+			// Обновляем данные
+			$data['stream_id'] = $request->input('stream_id');
+			$data['user_id'] = $user_id;
+			$data['title'] = $request->input('title');
+			$data['safe_page'] = $request->input('safe_page');
+			$data['offer_page'] = $request->input('offer_page');
+			$data['on_off'] = (int)$request->input('on_off');
+			$data['ipv6'] = (int)$request->input('ipv6');
+			$data['geo'] = empty($request->input('geo')) ? '' : implode(', ', $request->input('geo'));
+			$data['device'] = empty($request->input('device')) ? '' : implode(',', $request->input('device'));
+			// Обновим поток
+			$streams->update_stream($data);
+			return redirect('streams')->with('success', "Поток обновлен");
+		}
+	}	
 }
